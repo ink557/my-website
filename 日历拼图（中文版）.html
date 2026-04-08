@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日历拼图挑战</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css ">
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #e67e22;
+            --background-color: #f5f7fa;
+            --board-color: #ffffff;
+            --grid-color: #bdc3c7;
+            --text-color: #2c3e50;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --cell-size: 60px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --piece-gap: 4px; /* 拼图块内部间距 - 大屏幕默认值 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .version-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .switch-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .switch-btn:hover {
+            background-color: #3a5a85;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+
+        .date-controls-panel {
+            background-color: var(--board-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-selector label {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .date-inputs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-inputs select, .date-inputs button {
+            padding: 10px;
+            border: 2px solid var(--grid-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .date-inputs button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .date-inputs button:hover {
+            background-color: #3a5a85;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .date-inputs button:active {
+            transform: translateY(0);
+        }
+
+        .date-inputs select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        .game-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .current-date {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .weekday {
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .board-and-pieces-container {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .game-board-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 100%;
+        }
+
+        .board-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .moves-counter,
+        .timer {
+            background-color: var(--board-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            font-weight: 600;
+        }
+
+        .game-board {
+            background-color: var(--board-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow-x: auto;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(7, var(--cell-size));
+            grid-template-rows: repeat(8, var(--cell-size));
+            gap: 5px;
+            position: relative;
+            border: 2px solid var(--grid-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border: 1px solid var(--grid-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.2s ease;
+            background-color: #fff;
+        }
+
+        .cell.fixed {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .cell.highlighted {
+            background-color: rgba(230, 126, 34, 0.1);
+            border-color: var(--secondary-color);
+        }
+
+        .cell.selected {
+            outline: 3px solid var(--secondary-color);
+            z-index: 10;
+        }
+
+        /* 月份行样式 */
+        .month-row .cell {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            font-weight: 600;
+        }
+
+        /* 日期行样式 */
+        .date-row .cell {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        /* 星期行样式 */
+        .week-row .cell {
+            background-color: #e8f5e8;
+            color: #388e3c;
+            font-weight: 600;
+        }
+
+        .pieces-container {
+            background-color: var(--board-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .pieces-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .pieces-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .puzzle-piece {
+            background-color: rgba(74, 111, 165, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+            opacity: 0.3; /* 未使用的拼图块透明度降低 */
+        }
+
+        .puzzle-piece:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            opacity: 1; /* 鼠标悬停时恢复正常透明度 */
+        }
+
+        .puzzle-piece:active {
+            cursor: grabbing;
+        }
+
+        .puzzle-piece.selected {
+            border: 2px solid var(--secondary-color);
+            box-shadow: 0 0 10px rgba(230, 126, 34, 0.5);
+            opacity: 1; /* 选中的拼图块恢复正常透明度 */
+        }
+
+        .puzzle-piece.used {
+            opacity: 1; /* 已使用的拼图块保持正常透明度 */
+            cursor: not-allowed;
+            filter: none; /* 移除亮度过滤 */
+        }
+
+        .piece-shape {
+            display: grid;
+            gap: var(--piece-gap); /* 使用变量定义间距 - 修复点 */
+            pointer-events: none;
+        }
+
+        .piece-cell {
+            width: 25px;
+            height: 25px;
+            border-radius: 3px;
+            background-clip: content-box; /* 确保背景色只在内容区域显示 */
+            padding:var(--piece-gap); /* 清除内边距 */
+            background-color: var(--piece-color); /* ③ 颜色变量保持不动 */
+        }
+
+        .transform-controls {
+            display: none;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .transform-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        .transform-btn:hover {
+            transform: scale(1.1);
+            background-color: #3a5a85;
+        }
+
+        .transform-btn:active {
+            transform: scale(0.95);
+        }
+
+        .transform-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .transform-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .transform-hint.show {
+            opacity: 1;
+        }
+
+        .solution-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--board-color);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 90%;
+            width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.2s ease;
+        }
+
+        .close-modal:hover {
+            color: var(--error-color);
+        }
+
+        .solution-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .solutions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .solution-item {
+            background-color: rgba(74, 111, 165, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .solution-preview {
+            display: grid;
+            grid-template-columns: repeat(7, 20px);
+            grid-template-rows: repeat(8, 20px);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .solution-cell {
+            width: 20px;
+            height: 20px;
+            border-radius: 2px;
+        }
+
+        .solution-cell.fixed {
+            background-color: rgba(74, 111, 165, 0.2);
+        }
+
+        .solution-cell.filled {
+            opacity: 0.7;
+        }
+
+        .status-message {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 1.1rem;
+            min-height: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .status-success {
+            color: var(--success-color);
+        }
+
+        .status-error {
+            color: var(--error-color);
+        }
+
+        .status-info {
+            color: var(--primary-color);
+        }
+
+        .congrats-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .congrats-content {
+            background-color: var(--board-color);
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 90%;
+            width: 500px;
+            text-align: center;
+        }
+
+        .celebration-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            animation: bounce 1s ease infinite alternate;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .primary-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .secondary-btn {
+            background-color: var(--board-color);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .danger-btn {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 - 手机版自适应 */
+        @media (max-width: 768px) {
+            :root {
+                --cell-size: 45px;
+                --piece-gap: 3px; /* 小屏幕缩小间距 */
+            }
+
+            body {
+                padding: 10px 5px;
+            }
+
+            .version-switch {
+                top: 10px;
+                right: 10px;
+            }
+
+            .switch-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            header {
+                margin-bottom: 15px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+
+            .date-controls-panel {
+                padding: 15px;
+                gap: 10px;
+            }
+
+            .date-selector {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .date-inputs {
+                width: 100%;
+                gap: 5px;
+            }
+
+            .date-inputs select, 
+            .date-inputs button {
+                padding: 8px;
+                font-size: 0.9rem;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .game-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .current-date {
+                font-size: 1.2rem;
+            }
+
+            .weekday {
+                font-size: 1rem;
+            }
+
+            .board-and-pieces-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+
+            .game-board-container {
+                width: 100%;
+                gap: 10px;
+            }
+
+            .board-info {
+                gap: 10px;
+            }
+
+            .moves-counter, 
+            .timer {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+
+            .game-board {
+                padding: 15px;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .cell {
+                font-size: 0.8rem;
+            }
+
+            .pieces-container {
+                max-width: 100%;
+                padding: 15px;
+                margin: 0 auto;
+                width: 100%;
+            }
+
+            .pieces-title {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+
+            .pieces-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .puzzle-piece {
+                cursor: pointer;
+                min-height: 70px;
+                padding: 10px;
+            }
+
+            .puzzle-piece:active {
+                cursor: pointer;
+                transform: scale(0.95);
+            }
+
+            .piece-shape {
+                gap: var(--piece-gap); /* 保持响应式间距 */
+            }
+
+            .piece-cell {
+                width: 18px;
+                height: 18px;
+            }
+
+            .transform-controls {
+                display: flex;
+                gap: 8px;
+                margin: 10px 0;
+            }
+
+            .transform-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 0.9rem;
+            }
+
+            .transform-hint {
+                bottom: 80px;
+                font-size: 0.8rem;
+                padding: 8px 16px;
+            }
+
+            .status-message {
+                font-size: 1rem;
+                margin: 10px 0;
+                min-height: 22px;
+            }
+
+            .game-controls {
+                gap: 8px;
+            }
+
+            button {
+                padding: 10px 14px;
+                font-size: 0.9rem;
+                flex: 1;
+                min-width: 0;
+                justify-content: center;
+            }
+
+            button i {
+                font-size: 1rem;
+            }
+
+            .congrats-content {
+                padding: 30px 20px;
+            }
+
+            .celebration-icon {
+                font-size: 3rem;
+                margin-bottom: 15px;
+            }
+
+            .congrats-content h2 {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+            }
+
+            .congrats-content p {
+                font-size: 0.95rem;
+                margin-bottom: 5px;
+            }
+
+            .modal-content {
+                padding: 20px 15px;
+            }
+
+            .solution-item {
+                padding: 10px;
+            }
+        }
+
+        /* 小屏手机优化 */
+        @media (max-width: 480px) {
+            :root {
+                --cell-size: 38px;
+                --piece-gap: 2px; /* 更小屏幕进一步缩小间距 */
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .pieces-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .date-inputs {
+                flex-direction: column;
+            }
+
+            .board-info {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .game-controls {
+                flex-direction: column;
+            }
+
+            .solution-preview {
+                grid-template-columns: repeat(7, 15px);
+                grid-template-rows: repeat(8, 15px);
+            }
+
+            .solution-cell {
+                width: 15px;
+                height: 15px;
+            }
+        }
+
+        /* 超小屏手机优化 */
+        @media (max-width: 360px) {
+            :root {
+                --cell-size: 32px;
+            }
+
+            .puzzle-piece {
+                min-height: 60px;
+            }
+
+            .piece-cell {
+                width: 15px;
+                height: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="version-switch">
+        <button class="switch-btn" id="version-switch">
+            <i class="fas fa-mobile-alt"></i> 切换视图
+        </button>
+    </div>
+    
+    <header>
+        <h1>日历拼图挑战</h1>
+        <p class="subtitle">将拼图块拖放到正确位置，完成日历拼图！</p>
+    </header>
+
+    <div class="game-container">
+        <div class="date-controls-panel">
+            <div class="date-selector">
+                <label for="year-select">选择日期:</label>
+                <div class="date-inputs">
+                    <select id="year-select"></select>
+                    <select id="month-select"></select>
+                    <select id="day-select"></select>
+                    <button class="primary-btn" id="set-date">设置</button>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="current-date" id="current-date">2023年10月15日</div>
+                <div class="weekday" id="weekday">星期日</div>
+            </div>
+        </div>
+
+        <div class="board-and-pieces-container">
+            <div class="game-board-container">
+                <div class="board-info">
+                    <div class="moves-counter">
+                        步数: <span id="moves-display">0</span>
+                    </div>
+                    <div class="timer">
+                        用时: <span id="timer-display">00:00</span>
+                    </div>
+                </div>
+
+                <div class="game-board">
+                    <div id="board"></div>
+                </div>
+
+                <!-- 移动端变换控制按钮 -->
+                <div class="transform-controls">
+                    <button class="transform-btn" id="btn-rotate" disabled title="旋转">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="transform-btn" id="btn-flip" disabled title="翻转">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <button class="transform-btn" id="btn-move-up" disabled title="上移">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button class="transform-btn" id="btn-move-down" disabled title="下移">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button class="transform-btn" id="btn-move-left" disabled title="左移">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button class="transform-btn" id="btn-move-right" disabled title="右移">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="status-message" id="status"></div>
+
+                <div class="game-controls">
+                    <button class="secondary-btn" id="solve-puzzle">
+                        <i class="fas fa-lightbulb"></i> 自动求解
+                    </button>
+                    <button class="secondary-btn" id="check-solution">
+                        <i class="fas fa-check"></i> 检查答案
+                    </button>
+                    <button class="danger-btn" id="reset-board">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                    <button class="secondary-btn" id="undo-button" disabled>
+                        <i class="fas fa-undo"></i> 撤回
+                    </button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在求解中，请稍候...</p>
+                </div>
+            </div>
+
+            <div class="pieces-container">
+                <h3 class="pieces-title">可用透明拼图块</h3>
+                <div class="pieces-grid" id="pieces-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="solution-modal" id="solution-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-modal">&times;</span>
+            <h2 class="solution-title">拼图解决方案</h2>
+            <div class="solutions-grid" id="solutions-grid"></div>
+        </div>
+    </div>
+
+    <div class="congrats-modal" id="congrats-modal">
+        <div class="congrats-content">
+            <div class="celebration-icon">🎉</div>
+            <h2>恭喜你！</h2>
+            <p>你成功完成了日历拼图挑战！</p>
+            <p style="margin: 15px 0;">用时: <span id="final-time">00:00</span> | 步数: <span id="final-moves">0</span></p>
+            <div style="margin-top: 20px;">
+                <button class="primary-btn" id="play-again">再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="transform-hint" id="transform-hint">
+        方向键：移动 | 空格键：旋转 | Shift+空格键：翻转
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检测设备类型并自动设置初始视图
+            const isMobileDevice = window.innerWidth <= 768;
+            let isMobileView = isMobileDevice;
+
+            const versionSwitchBtn = document.getElementById('version-switch');
+            
+            // 更新按钮文本
+            updateVersionButtonText();
+
+            function updateVersionButtonText() {
+                if (isMobileView) {
+                    versionSwitchBtn.innerHTML = '<i class="fas fa-mobile-alt"></i>移动端';
+                } else {
+                    versionSwitchBtn.innerHTML = '<i class="fas fa-desktop"></i> PC端';
+                }
+            }
+
+            versionSwitchBtn.addEventListener('click', () => {
+                isMobileView = !isMobileView;
+                updateVersionButtonText();
+                updateTransformButtonsVisibility();
+                updateStatus(isMobileView ? '已切换到手机视图，点击拼图块选择，使用按钮操作' : '已切换到电脑视图，可拖拽拼图，使用键盘操作', 'info');
+                initializeBoard(); // 重新初始化棋盘以适应视图变化
+            });
+
+            // 触摸反馈函数 - 为移动设备添加触摸效果
+            function addTouchFeedback(element) {
+                element.addEventListener('touchstart', function() {
+                    this.classList.add('touched');
+                });
+                element.addEventListener('touchend', function() {
+                    this.classList.remove('touched');
+                });
+                element.addEventListener('touchcancel', function() {
+                    this.classList.remove('touched');
+                });
+            }
+
+            // 根据视图类型更新变换按钮可见性
+            function updateTransformButtonsVisibility() {
+                const transformControls = document.querySelector('.transform-controls');
+                if (isMobileView) {
+                    transformControls.style.display = 'flex';
+                } else {
+                    transformControls.style.display = 'none';
+                }
+            }
+
+            const gameState = {
+                selectedDate: new Date(),
+                selectedPiece: null,
+                board: Array(8).fill().map(() => Array(7).fill(0)),
+                fixedPositions: new Set(),
+                placedPieces: new Map(),
+                pieces: [
+                    { shape: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], name: "L形块" },
+                    { shape: [[1, 1, 1], [1, 0, 1]], name: "带缺口矩形" },
+                    { shape: [[1, 1, 1], [1, 1, 0]], name: "阶梯形块" },
+                    { shape: [[1, 1, 1], [0, 1, 0], [0, 1, 0]], name: "T形块" },
+                    { shape: [[0, 0, 1, 1], [1, 1, 1, 0]], name: "不规则块1" },
+                    { shape: [[0, 1, 1], [0, 1, 0], [1, 1, 0]], name: "Z形块" },
+                    { shape: [[1, 1, 1, 1], [0, 0, 0, 1]], name: "长条带缺口" },
+                    { shape: [[1, 1, 1, 1]], name: "直线块" },
+                    { shape: [[1, 0], [1, 0], [1, 1]], name: "小L形块" },
+                    { shape: [[1, 1, 0], [0, 1, 1]], name: "小Z形块" }
+                ],
+                pieceColors: [
+                    'rgba(231, 76, 60, 0.8)', 'rgba(52, 152, 219, 0.8)', 
+                    'rgba(46, 204, 113, 0.8)', 'rgba(155, 89, 182, 0.8)', 
+                    'rgba(241, 196, 15, 0.8)', 'rgba(230, 126, 34, 0.8)', 
+                    'rgba(26, 188, 156, 0.8)', 'rgba(149, 165, 166, 0.8)', 
+                    'rgba(52, 73, 94, 0.8)', 'rgba(232, 65, 24, 0.8)'
+                ],
+                solutions: [],
+                moves: 0,
+                gameStarted: false,
+                startTime: null,
+                timerInterval: null,
+                pieceTransforms: {},
+                selectedPieceIndex: null,
+                undoStack: []
+            };
+
+            const elements = {
+                yearSelect: document.getElementById('year-select'),
+                monthSelect: document.getElementById('month-select'),
+                daySelect: document.getElementById('day-select'),
+                setDateBtn: document.getElementById('set-date'),
+                solvePuzzleBtn: document.getElementById('solve-puzzle'),
+                checkSolutionBtn: document.getElementById('check-solution'),
+                resetBoardBtn: document.getElementById('reset-board'),
+                undoButton: document.getElementById('undo-button'),
+                board: document.getElementById('board'),
+                piecesContainer: document.getElementById('pieces-container'),
+                status: document.getElementById('status'),
+                currentDate: document.getElementById('current-date'),
+                weekday: document.getElementById('weekday'),
+                movesDisplay: document.getElementById('moves-display'),
+                timerDisplay: document.getElementById('timer-display'),
+                solutionModal: document.getElementById('solution-modal'),
+                closeModalBtn: document.getElementById('close-modal'),
+                solutionsGrid: document.getElementById('solutions-grid'),
+                congratsModal: document.getElementById('congrats-modal'),
+                finalTime: document.getElementById('final-time'),
+                finalMoves: document.getElementById('final-moves'),
+                playAgainBtn: document.getElementById('play-again'),
+                loading: document.getElementById('loading'),
+                transformHint: document.getElementById('transform-hint'),
+                // 移动端控制按钮
+                btnRotate: document.getElementById('btn-rotate'),
+                btnFlip: document.getElementById('btn-flip'),
+                btnMoveUp: document.getElementById('btn-move-up'),
+                btnMoveDown: document.getElementById('btn-move-down'),
+                btnMoveLeft: document.getElementById('btn-move-left'),
+                btnMoveRight: document.getElementById('btn-move-right')
+            };
+
+            function initDateSelectors() {
+                const currentYear = new Date().getFullYear();
+                for (let year = currentYear - 10; year <= currentYear + 10; year++) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year + '年';
+                    if (year === currentYear) option.selected = true;
+                    elements.yearSelect.appendChild(option);
+                }
+                
+                for (let month = 1; month <= 12; month++) {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month + '月';
+                    elements.monthSelect.appendChild(option);
+                }
+                
+                const currentMonth = new Date().getMonth() + 1;
+                elements.monthSelect.value = currentMonth;
+                
+                updateDaySelector(currentYear, currentMonth);
+                
+                const currentDay = new Date().getDate();
+                elements.daySelect.value = currentDay;
+
+                // 添加触摸反馈
+                addTouchFeedback(elements.yearSelect);
+                addTouchFeedback(elements.monthSelect);
+                addTouchFeedback(elements.daySelect);
+                addTouchFeedback(elements.setDateBtn);
+            }
+
+            function updateDaySelector(year, month) {
+                elements.daySelect.innerHTML = '';
+                const daysInMonth = new Date(year, month, 0).getDate();
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day + '日';
+                    if (day === new Date().getDate() && 
+                        year === new Date().getFullYear() && 
+                        month === new Date().getMonth() + 1) {
+                        option.selected = true;
+                    }
+                    elements.daySelect.appendChild(option);
+                }
+            }
+
+            function setGameDate() {
+                const year = parseInt(elements.yearSelect.value);
+                const month = parseInt(elements.monthSelect.value);
+                const day = parseInt(elements.daySelect.value);
+                
+                gameState.selectedDate = new Date(year, month - 1, day);
+                updateDateDisplay();
+                initializeBoard();
+                updateStatus(`已设置日期: ${year}年${month}月${day}日`, 'info');
+            }
+
+            function updateDateDisplay() {
+                const year = gameState.selectedDate.getFullYear();
+                const month = gameState.selectedDate.getMonth() + 1;
+                const day = gameState.selectedDate.getDate();
+                const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                const weekday = weekdays[gameState.selectedDate.getDay()];
+                
+                elements.currentDate.textContent = `${year}年${month}月${day}日`;
+                elements.weekday.textContent = weekday;
+            }
+
+            function initializeBoard() {
+                elements.board.innerHTML = '';
+                gameState.board = Array(8).fill().map(() => Array(7).fill(0));
+                gameState.fixedPositions = new Set();
+                gameState.placedPieces = new Map();
+                gameState.moves = 0;
+                gameState.pieceTransforms = {};
+                gameState.selectedPieceIndex = null;
+                gameState.undoStack = [];
+                
+                elements.movesDisplay.textContent = '0';
+                elements.undoButton.disabled = true;
+                
+                // 禁用变换控制按钮
+                updateTransformButtonsState();
+                
+                if (gameState.timerInterval) {
+                    clearInterval(gameState.timerInterval);
+                }
+                gameState.gameStarted = false;
+                elements.timerDisplay.textContent = '00:00';
+                
+                const year = gameState.selectedDate.getFullYear();
+                const month = gameState.selectedDate.getMonth() + 1;
+                const day = gameState.selectedDate.getDate();
+                const weekday = gameState.selectedDate.getDay();
+                
+                // 固定位置: 底部左侧4个格子
+                for (let j = 0; j < 4; j++) {
+                    gameState.fixedPositions.add(`7,${j}`);
+                    gameState.board[7][j] = -1;
+                }
+                
+                // 固定位置: 右侧顶部2个格子
+                for (let i = 0; i < 2; i++) {
+                    gameState.fixedPositions.add(`${i},6`);
+                    gameState.board[i][6] = -1;
+                }
+                
+                // 月份位置
+                const monthPos = getMonthPosition(month);
+                gameState.fixedPositions.add(`${monthPos.row},${monthPos.col}`);
+                gameState.board[monthPos.row][monthPos.col] = -1;
+                
+                // 日期位置
+                const dayPos = getDayPosition(day);
+                gameState.fixedPositions.add(`${dayPos.row},${dayPos.col}`);
+                gameState.board[dayPos.row][dayPos.col] = -1;
+                
+                // 星期位置
+                const weekPos = getWeekPosition(weekday);
+                gameState.fixedPositions.add(`${weekPos.row},${weekPos.col}`);
+                gameState.board[weekPos.row][weekPos.col] = -1;
+                
+                // 创建棋盘单元格
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 7; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        
+                        // 添加行样式类
+                        if (i === 0 || i === 1) {
+                            cell.classList.add('month-row');
+                        } else if (i >= 2 && i <= 6) {
+                            cell.classList.add('date-row');
+                        } else if (i === 7 || i === 6) {
+                            cell.classList.add('week-row');
+                        }
+                        
+                        if (gameState.fixedPositions.has(`${i},${j}`)) {
+                            cell.classList.add('fixed');
+                            
+                            // 月份
+                            if (i === 0 && j < 6) {
+                                cell.textContent = ['一月', '二月', '三月', '四月', '五月', '六月'][j];
+                            } else if (i === 1 && j < 6) {
+                                cell.textContent = ['七月', '八月', '九月', '十月', '十一月', '十二月'][j];
+                            }
+                            // 星期
+                            else if (i === 6 && j >= 3 && j <= 6) {
+                                cell.textContent = ['日', '一', '二', '三'][j - 3];
+                            } 
+                            // 日期
+                            else if (i >= 2 && i <= 6 && j < 7) {
+                                const dayNum = (i - 2) * 7 + j + 1;
+                                if (dayNum <= 31) {
+                                    cell.textContent = dayNum.toString();
+                                }
+                            }
+                            else if (i === 7) {
+                                const weekTexts2 = ['贵', '在', '坚', '持', '四', '五', '六'];
+                                cell.textContent = weekTexts2[j];
+                            }
+                            // 右侧固定文本
+                            else if (j === 6 && i < 2) {
+                                cell.textContent = i === 0 ? '加' : '油';
+                            }
+                        } else {
+                            // 添加点击事件用于选择已放置的拼图块或放置新拼图
+                            cell.addEventListener('click', function() {
+                                const row = parseInt(this.dataset.row);
+                                const col = parseInt(this.dataset.col);
+                                const pieceId = gameState.board[row][col];
+                                
+                                if (pieceId > 0) {
+                                    // 选中已放置的拼图块
+                                    selectPlacedPiece(pieceId - 1);
+                                } else if (isMobileView && gameState.selectedPieceIndex !== null) {
+                                    // 手机版：有选中的拼图块，尝试放置
+                                    placePiece(gameState.selectedPieceIndex, row, col);
+                                } else {
+                                    // 取消选择
+                                    unselectAllPieces();
+                                    gameState.selectedPieceIndex = null;
+                                    updateTransformButtonsState();
+                                }
+                            });
+
+                            // 为非手机版添加拖拽事件
+                            if (!isMobileView) {
+                                cell.addEventListener('dragover', handleDragOver);
+                                cell.addEventListener('dragleave', handleDragLeave);
+                                cell.addEventListener('drop', handleDrop);
+                            }
+                        }
+                        
+                        // 添加触摸反馈
+                        addTouchFeedback(cell);
+                        elements.board.appendChild(cell);
+                    }
+                }
+                
+                initPieces();
+            }
+
+            function getMonthPosition(month) {
+                if (1 <= month && month <= 6) {
+                    return { row: 0, col: month - 1 };
+                } else {
+                    return { row: 1, col: month - 7 };
+                }
+            }
+
+            function getDayPosition(day) {
+                if (1 <= day && day <= 7) {
+                    return { row: 2, col: day - 1 };
+                } else if (8 <= day && day <= 14) {
+                    return { row: 3, col: day - 8 };
+                } else if (15 <= day && day <= 21) {
+                    return { row: 4, col: day - 15 };
+                } else if (22 <= day && day <= 28) {
+                    return { row: 5, col: day - 22 };
+                } else {
+                    return { row: 6, col: day - 29 };
+                }
+            }
+
+            function getWeekPosition(weekday) {
+                if (weekday === 0) { // 周日
+                    return { row: 6, col: 3 };
+                } else if (weekday === 1) { // 周一
+                    return { row: 6, col: 4 };
+                } else if (weekday === 2) { // 周二
+                    return { row: 6, col: 5 };
+                } else if (weekday === 3) { // 周三
+                    return { row: 6, col: 6 };
+                } else if (weekday === 4) { // 周四
+                    return { row: 7, col: 4 };
+                } else if (weekday === 5) { // 周五
+                    return { row: 7, col: 5 };
+                } else if (weekday === 6) { // 周六
+                    return { row: 7, col: 6 };
+                }
+            }
+
+            function rotateMatrix(matrix) {
+                const rows = matrix.length;
+                const cols = matrix[0].length;
+                const rotated = Array(cols).fill().map(() => Array(rows).fill(0));
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        rotated[j][rows - 1 - i] = matrix[i][j];
+                    }
+                }
+                return rotated;
+            }
+
+            function flipMatrix(matrix) {
+                return matrix.map(row => [...row].reverse());
+            }
+
+            function getCurrentShape(index) {
+                if (!gameState.pieceTransforms[index]) {
+                    gameState.pieceTransforms[index] = {
+                        shape: gameState.pieces[index].shape,
+                        rotation: 0,
+                        flipped: false
+                    };
+                }
+                return gameState.pieceTransforms[index].shape;
+            }
+
+            function applyTransform(index, transformType) {
+                if (!gameState.pieceTransforms[index]) {
+                    gameState.pieceTransforms[index] = {
+                        shape: gameState.pieces[index].shape,
+                        rotation: 0,
+                        flipped: false
+                    };
+                }
+
+                const transform = gameState.pieceTransforms[index];
+                const wasPlaced = gameState.placedPieces.has(index);
+                let oldShape = JSON.parse(JSON.stringify(transform.shape));
+                
+                // 保存当前位置
+                const currentPos = gameState.placedPieces.get(index);
+                
+                // 如果拼图已放置，清除当前位置的拼图
+                if (currentPos) {
+                    clearPieceFromBoard(index);
+                }
+                
+                // 应用变换
+                if (transformType === 'rotate') {
+                    transform.shape = rotateMatrix(transform.shape);
+                    transform.rotation = (transform.rotation + 90) % 360;
+                } else if (transformType === 'flip') {
+                    transform.shape = flipMatrix(transform.shape);
+                    transform.flipped = !transform.flipped;
+                }
+
+                // 更新拼图块显示
+                const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${index}"]`);
+                if (pieceElement) {
+                    const pieceGrid = pieceElement.querySelector('.piece-shape');
+                    pieceGrid.innerHTML = '';
+                    
+                    const shape = getCurrentShape(index);
+                    const rows = shape.length;
+                    const cols = shape[0].length;
+                    
+                    // 根据屏幕大小调整拼图块预览尺寸
+                    const cellSize = window.innerWidth <= 480 ? '15px' : '18px';
+                    pieceGrid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize})`;
+                    pieceGrid.style.gridTemplateRows = `repeat(${rows}, ${cellSize})`;
+                    
+                    for (let i = 0; i < rows; i++) {
+                        for (let j = 0; j < cols; j++) {
+                            if (shape[i][j] === 1) {
+                                const cell = document.createElement('div');
+                                cell.className = 'piece-cell';
+                                cell.style.backgroundColor = gameState.pieceColors[index];
+                                pieceGrid.appendChild(cell);
+                            } else {
+                                const emptyCell = document.createElement('div');
+                                emptyCell.style.width = cellSize;
+                                pieceGrid.appendChild(emptyCell);
+                            }
+                        }
+                    }
+                }
+
+                // 如果拼图已放置，尝试放回原位置
+                if (currentPos) {
+                    const newShape = getCurrentShape(index);
+                    if (canPlacePieceAt(newShape, currentPos.row, currentPos.col, index)) {
+                        placePieceAtPosition(index, currentPos.row, currentPos.col);
+                        showTransformHint(transformType === 'rotate' ? '旋转90°' : '水平翻转');
+                        gameState.moves++;
+                        elements.movesDisplay.textContent = gameState.moves;
+                    } else {
+                        // 如果无法放回原位置，恢复原始形状和位置
+                        transform.shape = oldShape;
+                        placePieceAtPosition(index, currentPos.row, currentPos.col);
+                        updateStatus('无法应用变换，会导致重叠或超出边界', 'error');
+                    }
+                    
+                    // 重新选中拼图
+                    selectPlacedPiece(index);
+                } else {
+                    // 未放置的拼图，仅更新显示
+                    showTransformHint(transformType === 'rotate' ? '旋转90°' : '水平翻转');
+                }
+            }
+
+            function showTransformHint(action) {
+                if (isMobileView) {
+                    elements.transformHint.textContent = `${action} - 点击拼图块选中，使用下方按钮旋转、翻转和移动`;
+                } else {
+                    elements.transformHint.textContent = `${action} - 方向键：移动 | 空格键：旋转 | Shift+空格键：翻转`;
+                }
+                elements.transformHint.classList.add('show');
+                setTimeout(() => {
+                    elements.transformHint.classList.remove('show');
+                }, 2000);
+            }
+
+            function initPieces() {
+                elements.piecesContainer.innerHTML = '';
+                
+                gameState.pieces.forEach((piece, index) => {
+                    const pieceElement = createPieceElement(piece, index);
+                    elements.piecesContainer.appendChild(pieceElement);
+                });
+            }
+
+            function createPieceElement(piece, index) {
+                const pieceElement = document.createElement('div');
+                pieceElement.className = 'puzzle-piece';
+                pieceElement.draggable = !isMobileView; // 手机版禁用拖拽
+                pieceElement.dataset.pieceIndex = index;
+                pieceElement.title = piece.name;
+                
+                // 添加触摸反馈
+                addTouchFeedback(pieceElement);
+                
+                const pieceGrid = document.createElement('div');
+                pieceGrid.className = 'piece-shape';
+                
+                const currentShape = getCurrentShape(index);
+                const rows = currentShape.length;
+                const cols = currentShape[0].length;
+                
+                // 根据屏幕大小调整拼图块预览尺寸
+                const cellSize = window.innerWidth <= 480 ? '15px' : '18px';
+                pieceGrid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize})`;
+                pieceGrid.style.gridTemplateRows = `repeat(${rows}, ${cellSize})`;
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (currentShape[i][j] === 1) {
+                            const cell = document.createElement('div');
+                            cell.className = 'piece-cell';
+                            cell.style.backgroundColor = gameState.pieceColors[index];
+                            pieceGrid.appendChild(cell);
+                        } else {
+                            const emptyCell = document.createElement('div');
+                            emptyCell.style.width = cellSize;
+                            pieceGrid.appendChild(emptyCell);
+                        }
+                    }
+                }
+                
+                pieceElement.appendChild(pieceGrid);
+                
+                pieceElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    selectPiece(index);
+                });
+                
+                // 非手机版添加拖拽事件
+                if (!isMobileView) {
+                    pieceElement.addEventListener('dragstart', (e) => {
+                        if (pieceElement.classList.contains('used')) {
+                            e.preventDefault();
+                            return;
+                        }
+                        
+                        e.dataTransfer.setData('text/plain', index);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setTimeout(() => {
+                            pieceElement.style.opacity = '0.5';
+                        }, 0);
+                    });
+                    
+                    pieceElement.addEventListener('dragend', () => {
+                        pieceElement.style.opacity = '1';
+                    });
+                }
+                
+                return pieceElement;
+            }
+
+            function selectPiece(index) {
+                // 如果拼图已使用，不能再选择
+                const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${index}"]`);
+                if (pieceElement.classList.contains('used')) {
+                    return;
+                }
+                
+                unselectAllPieces();
+                
+                if (pieceElement) {
+                    pieceElement.classList.add('selected');
+                    gameState.selectedPieceIndex = index;
+                    
+                    if (isMobileView) {
+                        updateStatus(`已选中 ${gameState.pieces[index].name}，点击棋盘放置，使用下方按钮旋转和翻转`, 'info');
+                    } else {
+                        updateStatus(`已选中 ${gameState.pieces[index].name}，可拖拽放置，空格键旋转，Shift+空格键翻转`, 'info');
+                    }
+                    
+                    updateTransformButtonsState();
+                }
+            }
+
+            function selectPlacedPiece(index) {
+                unselectAllPieces();
+                
+                // 选中拼图块区域的所有单元格
+                const pos = gameState.placedPieces.get(index);
+                if (!pos) return;
+                
+                const shape = getCurrentShape(index);
+                const rows = shape.length;
+                const cols = shape[0].length;
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (shape[i][j] === 1) {
+                            const cellRow = pos.row + i;
+                            const cellCol = pos.col + j;
+                            const cell = document.querySelector(`.cell[data-row="${cellRow}"][data-col="${cellCol}"]`);
+                            if (cell) cell.classList.add('selected');
+                        }
+                    }
+                }
+                
+                // 选中拼图块列表中的对应项
+                const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${index}"]`);
+                if (pieceElement) pieceElement.classList.add('selected');
+                
+                gameState.selectedPieceIndex = index;
+                
+                if (isMobileView) {
+                    updateStatus(`已选中 ${gameState.pieces[index].name}，使用下方按钮移动、旋转和翻转`, 'info');
+                } else {
+                    updateStatus(`已选中 ${gameState.pieces[index].name}，可使用方向键移动，空格键旋转，Shift+空格键翻转`, 'info');
+                }
+                
+                updateTransformButtonsState();
+            }
+
+            function unselectAllPieces() {
+                // 移除棋盘上的选中状态
+                document.querySelectorAll('.cell.selected').forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+                
+                // 移除拼图块列表中的选中状态
+                document.querySelectorAll('.puzzle-piece.selected').forEach(piece => {
+                    piece.classList.remove('selected');
+                });
+            }
+
+            // 更新变换按钮状态
+            function updateTransformButtonsState() {
+                const hasSelectedPiece = gameState.selectedPieceIndex !== null;
+                const isPiecePlaced = hasSelectedPiece && gameState.placedPieces.has(gameState.selectedPieceIndex);
+                
+                elements.btnRotate.disabled = !hasSelectedPiece;
+                elements.btnFlip.disabled = !hasSelectedPiece;
+                elements.btnMoveUp.disabled = !isPiecePlaced;
+                elements.btnMoveDown.disabled = !isPiecePlaced;
+                elements.btnMoveLeft.disabled = !isPiecePlaced;
+                elements.btnMoveRight.disabled = !isPiecePlaced;
+            }
+
+            // 移动设备控制按钮事件
+            elements.btnRotate.addEventListener('click', () => {
+                if (gameState.selectedPieceIndex !== null) {
+                    applyTransform(gameState.selectedPieceIndex, 'rotate');
+                }
+            });
+
+            elements.btnFlip.addEventListener('click', () => {
+                if (gameState.selectedPieceIndex !== null) {
+                    applyTransform(gameState.selectedPieceIndex, 'flip');
+                }
+            });
+
+            elements.btnMoveUp.addEventListener('click', () => {
+                moveSelectedPiece('ArrowUp');
+            });
+
+            elements.btnMoveDown.addEventListener('click', () => {
+                moveSelectedPiece('ArrowDown');
+            });
+
+            elements.btnMoveLeft.addEventListener('click', () => {
+                moveSelectedPiece('ArrowLeft');
+            });
+
+            elements.btnMoveRight.addEventListener('click', () => {
+                moveSelectedPiece('ArrowRight');
+            });
+
+            document.addEventListener('keydown', (e) => {
+                // 非手机版才响应键盘事件
+                if (isMobileView) return;
+                
+                if (gameState.selectedPieceIndex === null) return;
+                
+                // 检查该拼图是否已放置
+                const isPlaced = gameState.placedPieces.has(gameState.selectedPieceIndex);
+                
+                // 方向键移动 - 仅对已放置的拼图有效
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && isPlaced) {
+                    e.preventDefault();
+                    moveSelectedPiece(e.code);
+                } 
+                // 空格键旋转或翻转 - 对已放置和未放置的拼图都有效
+                else if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        applyTransform(gameState.selectedPieceIndex, 'flip');
+                    } else {
+                        applyTransform(gameState.selectedPieceIndex, 'rotate');
+                    }
+                }
+            });
+
+            function moveSelectedPiece(direction) {
+                const pieceIndex = gameState.selectedPieceIndex;
+                const currentPos = gameState.placedPieces.get(pieceIndex);
+                if (!currentPos) return;
+                
+                // 计算新位置
+                let newRow = currentPos.row;
+                let newCol = currentPos.col;
+                
+                switch (direction) {
+                    case 'ArrowUp':
+                        newRow -= 1;
+                        break;
+                    case 'ArrowDown':
+                        newRow += 1;
+                        break;
+                    case 'ArrowLeft':
+                        newCol -= 1;
+                        break;
+                    case 'ArrowRight':
+                        newCol += 1;
+                        break;
+                }
+                
+                // 检查新位置是否合法
+                const shape = getCurrentShape(pieceIndex);
+                if (canPlacePieceAt(shape, newRow, newCol, pieceIndex)) {
+                    // 清除当前位置
+                    clearPieceFromBoard(pieceIndex);
+                    
+                    // 放置到新位置
+                    placePieceAtPosition(pieceIndex, newRow, newCol);
+                    
+                    // 更新移动计数
+                    gameState.moves++;
+                    elements.movesDisplay.textContent = gameState.moves;
+                    
+                    // 显示移动提示
+                    const directionText = {
+                        'ArrowUp': '上',
+                        'ArrowDown': '下',
+                        'ArrowLeft': '左',
+                        'ArrowRight': '右'
+                    };
+                    updateStatus(`已将 ${gameState.pieces[pieceIndex].name} 向${directionText[direction]}移动`, 'info');
+                } else {
+                    updateStatus('无法移动，会超出边界或与其他拼图块重叠', 'error');
+                }
+            }
+
+            function canPlacePieceAt(shape, startRow, startCol, pieceIndex) {
+                const rows = shape.length;
+                const cols = shape[0].length;
+                
+                // 检查是否超出边界
+                if (startRow < 0 || startCol < 0 || 
+                    startRow + rows > 8 || startCol + cols > 7) {
+                    return false;
+                }
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (shape[i][j] === 1) {
+                            const cellRow = startRow + i;
+                            const cellCol = startCol + j;
+                            
+                            // 检查是否是固定位置
+                            if (gameState.fixedPositions.has(`${cellRow},${cellCol}`)) {
+                                return false;
+                            }
+                            
+                            // 检查是否与其他拼图块重叠
+                            let overlaps = false;
+                            gameState.placedPieces.forEach((pos, placedIndex) => {
+                                if (placedIndex === pieceIndex) return;
+                                
+                                const placedShape = getCurrentShape(placedIndex);
+                                const placedRows = placedShape.length;
+                                const placedCols = placedShape[0].length;
+                                
+                                for (let pi = 0; pi < placedRows; pi++) {
+                                    for (let pj = 0; pj < placedCols; pj++) {
+                                        if (placedShape[pi][pj] === 1) {
+                                            const placedCellRow = pos.row + pi;
+                                            const placedCellCol = pos.col + pj;
+                                            
+                                            if (cellRow === placedCellRow && cellCol === placedCellCol) {
+                                                overlaps = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (overlaps) break;
+                                }
+                                if (overlaps) return;
+                            });
+                            
+                            if (overlaps) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                
+                return true;
+            }
+
+            function placePieceAtPosition(pieceIndex, startRow, startCol) {
+                const currentShape = getCurrentShape(pieceIndex);
+                const pieceRows = currentShape.length;
+                const pieceCols = currentShape[0].length;
+                
+                for (let i = 0; i < pieceRows; i++) {
+                    for (let j = 0; j < pieceCols; j++) {
+                        if (currentShape[i][j] === 1) {
+                            const cellRow = startRow + i;
+                            const cellCol = startCol + j;
+                            gameState.board[cellRow][cellCol] = pieceIndex + 1;
+                            
+                            const cell = document.querySelector(`.cell[data-row="${cellRow}"][data-col="${cellCol}"]`);
+                            cell.style.backgroundColor = gameState.pieceColors[pieceIndex];
+                            cell.style.opacity = '0.7'; // 已放置的拼图块颜色稍暗
+                            
+                            // 如果是选中的拼图块，保持选中状态
+                            if (gameState.selectedPieceIndex === pieceIndex) {
+                                cell.classList.add('selected');
+                            }
+                        }
+                    }
+                }
+                
+                gameState.placedPieces.set(pieceIndex, { row: startRow, col: startCol });
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('highlighted');
+            }
+
+            function handleDragLeave() {
+                this.classList.remove('highlighted');
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const pieceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const row = parseInt(this.dataset.row);
+                const col = parseInt(this.dataset.col);
+                
+                document.querySelectorAll('.cell.highlighted').forEach(cell => {
+                    cell.classList.remove('highlighted');
+                });
+                
+                placePiece(pieceIndex, row, col);
+            }
+
+            function placePiece(pieceIndex, startRow, startCol) {
+                const currentShape = getCurrentShape(pieceIndex);
+                const pieceRows = currentShape.length;
+                const pieceCols = currentShape[0].length;
+                
+                if (startRow + pieceRows > 8 || startCol + pieceCols > 7) {
+                    updateStatus('拼图块超出棋盘边界', 'error');
+                    return;
+                }
+                
+                for (let i = 0; i < pieceRows; i++) {
+                    for (let j = 0; j < pieceCols; j++) {
+                        if (currentShape[i][j] === 1) {
+                            const cellRow = startRow + i;
+                            const cellCol = startCol + j;
+                            
+                            if (gameState.fixedPositions.has(`${cellRow},${cellCol}`)) {
+                                updateStatus('不能放置在固定位置', 'error');
+                                return;
+                            }
+                            
+                            let overlaps = false;
+                            gameState.placedPieces.forEach((pos, placedIndex) => {
+                                if (placedIndex === pieceIndex) return;
+                                
+                                const placedShape = getCurrentShape(placedIndex);
+                                const placedRows = placedShape.length;
+                                const placedCols = placedShape[0].length;
+                                const placedStartRow = pos.row;
+                                const placedStartCol = pos.col;
+                                
+                                for (let pi = 0; pi < placedRows; pi++) {
+                                    for (let pj = 0; pj < placedCols; pj++) {
+                                        if (placedShape[pi][pj] === 1) {
+                                            const placedCellRow = placedStartRow + pi;
+                                            const placedCellCol = placedStartCol + pj;
+                                            
+                                            if (cellRow === placedCellRow && cellCol === placedCellCol) {
+                                                overlaps = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (overlaps) break;
+                                }
+                                if (overlaps) return;
+                            });
+                            
+                            if (overlaps) {
+                                updateStatus('不能与其他拼图块重叠', 'error');
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                if (!gameState.gameStarted) {
+                    startGameTimer();
+                }
+                
+                if (gameState.placedPieces.has(pieceIndex)) {
+                    clearPieceFromBoard(pieceIndex);
+                } else {
+                    gameState.moves++;
+                    elements.movesDisplay.textContent = gameState.moves;
+                    gameState.undoStack.push(pieceIndex);
+                    elements.undoButton.disabled = false;
+                }
+                
+                placePieceAtPosition(pieceIndex, startRow, startCol);
+                
+                const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${pieceIndex}"]`);
+                pieceElement.classList.add('used');
+                pieceElement.classList.remove('selected');
+                gameState.selectedPieceIndex = null;
+                updateTransformButtonsState();
+                
+                updateStatus(`拼图块 ${pieceIndex + 1} (${gameState.pieces[pieceIndex].name}) 已放置`, 'info');
+                
+                if (gameState.placedPieces.size === gameState.pieces.length) {
+                    checkSolution();
+                }
+            }
+
+            function clearPieceFromBoard(pieceIndex) {
+                if (!gameState.placedPieces.has(pieceIndex)) return;
+                
+                const currentShape = getCurrentShape(pieceIndex);
+                const pos = gameState.placedPieces.get(pieceIndex);
+                const pieceRows = currentShape.length;
+                const pieceCols = currentShape[0].length;
+                
+                for (let i = 0; i < pieceRows; i++) {
+                    for (let j = 0; j < pieceCols; j++) {
+                        if (currentShape[i][j] === 1) {
+                            const cellRow = pos.row + i;
+                            const cellCol = pos.col + j;
+                            gameState.board[cellRow][cellCol] = 0;
+                            
+                            const cell = document.querySelector(`.cell[data-row="${cellRow}"][data-col="${cellCol}"]`);
+                            cell.style.backgroundColor = '';
+                            cell.style.opacity = '';
+                            cell.classList.remove('selected');
+                        }
+                    }
+                }
+                
+                gameState.placedPieces.delete(pieceIndex);
+            }
+
+            function undoLastPiece() {
+                // 如果有选中的拼图块，优先撤回选中的
+                if (gameState.selectedPieceIndex !== null) {
+                    const selectedIndex = gameState.selectedPieceIndex;
+                    
+                    // 检查该拼图是否已放置
+                    if (gameState.placedPieces.has(selectedIndex)) {
+                        clearPieceFromBoard(selectedIndex);
+                        
+                        const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${selectedIndex}"]`);
+                        pieceElement.classList.remove('used');
+                        // 恢复未使用时的透明状态
+                        pieceElement.style.opacity = '0.3';
+                        
+                        // 从撤销栈中移除该拼图
+                        const indexInStack = gameState.undoStack.indexOf(selectedIndex);
+                        if (indexInStack !== -1) {
+                            gameState.undoStack.splice(indexInStack, 1);
+                        }
+                        
+                        gameState.moves++;
+                        elements.movesDisplay.textContent = gameState.moves;
+                        
+                        updateStatus(`已撤回选中的拼图块 ${selectedIndex + 1} (${gameState.pieces[selectedIndex].name})`, 'info');
+                        
+                        // 取消选择
+                        unselectAllPieces();
+                        gameState.selectedPieceIndex = null;
+                        updateTransformButtonsState();
+                        
+                        if (gameState.undoStack.length === 0) {
+                            elements.undoButton.disabled = true;
+                        }
+                        return;
+                    }
+                }
+                
+                // 否则撤回最后放置的拼图
+                if (gameState.undoStack.length === 0) {
+                    elements.undoButton.disabled = true;
+                    return;
+                }
+                
+                const lastPieceIndex = gameState.undoStack.pop();
+                clearPieceFromBoard(lastPieceIndex);
+                
+                const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${lastPieceIndex}"]`);
+                pieceElement.classList.remove('used');
+                // 恢复未使用时的透明状态
+                pieceElement.style.opacity = '0.3';
+                
+                gameState.moves++;
+                elements.movesDisplay.textContent = gameState.moves;
+                
+                if (gameState.undoStack.length === 0) {
+                    elements.undoButton.disabled = true;
+                }
+                
+                updateStatus(`已撤回拼图块 ${lastPieceIndex + 1} (${gameState.pieces[lastPieceIndex].name})`, 'info');
+                
+                // 取消选择
+                gameState.selectedPieceIndex = null;
+                updateTransformButtonsState();
+            }
+
+            function checkSolution() {
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 7; j++) {
+                        if (!gameState.fixedPositions.has(`${i},${j}`) && gameState.board[i][j] === 0) {
+                            updateStatus('解决方案不完整，还有空格未填', 'error');
+                            return false;
+                        }
+                    }
+                }
+                
+                if (gameState.placedPieces.size === gameState.pieces.length) {
+                    clearInterval(gameState.timerInterval);
+                    showCongratsModal();
+                    updateStatus('恭喜！拼图完成！所有拼图块已正确放置！', 'success');
+                    return true;
+                } else {
+                    updateStatus('解决方案不完整，还有拼图块未使用', 'error');
+                    return false;
+                }
+            }
+
+            function showCongratsModal() {
+                elements.finalTime.textContent = elements.timerDisplay.textContent;
+                elements.finalMoves.textContent = gameState.moves;
+                elements.congratsModal.style.display = 'flex';
+            }
+
+            function startGameTimer() {
+                gameState.gameStarted = true;
+                gameState.startTime = new Date();
+                
+                gameState.timerInterval = setInterval(() => {
+                    const currentTime = new Date();
+                    const elapsedTime = new Date(currentTime - gameState.startTime);
+                    const minutes = elapsedTime.getMinutes().toString().padStart(2, '0');
+                    const seconds = elapsedTime.getSeconds().toString().padStart(2, '0');
+                    elements.timerDisplay.textContent = `${minutes}:${seconds}`;
+                }, 1000);
+            }
+
+            function resetBoard() {
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 7; j++) {
+                        if (!gameState.fixedPositions.has(`${i},${j}`)) {
+                            gameState.board[i][j] = 0;
+                            const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+                            cell.style.backgroundColor = '';
+                            cell.style.opacity = '';
+                            cell.classList.remove('selected');
+                        }
+                    }
+                }
+                
+                gameState.placedPieces = new Map();
+                gameState.moves = 0;
+                gameState.selectedPieceIndex = null;
+                gameState.undoStack = [];
+                
+                elements.movesDisplay.textContent = '0';
+                elements.undoButton.disabled = true;
+                updateTransformButtonsState();
+                
+                if (gameState.timerInterval) {
+                    clearInterval(gameState.timerInterval);
+                }
+                gameState.gameStarted = false;
+                elements.timerDisplay.textContent = '00:00';
+                
+                document.querySelectorAll('.puzzle-piece').forEach(piece => {
+                    piece.classList.remove('used', 'selected');
+                    // 恢复未使用时的透明状态
+                    piece.style.opacity = '0.3';
+                });
+                
+                updateStatus('棋盘已重置', 'info');
+            }
+
+            async function solvePuzzle() {
+                elements.loading.style.display = 'block';
+                updateStatus('正在求解中，请稍候...', 'info');
+                
+                try {
+                    const solutions = await solveWithBacktracking();
+                    gameState.solutions = solutions;
+                    
+                    if (solutions.length > 0) {
+                        displaySolutions();
+                        updateStatus(`找到 ${solutions.length} 个解决方案`, 'success');
+                    } else {
+                        updateStatus('未找到有效的解决方案', 'error');
+                    }
+                } catch (error) {
+                    updateStatus('求解过程中出错: ' + error.message, 'error');
+                } finally {
+                    elements.loading.style.display = 'none';
+                }
+            }
+
+            function solveWithBacktracking() {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        const solutions = [];
+                        const board = Array(8).fill().map(() => Array(7).fill(0));
+                        
+                        // 标记固定位置
+                        for (let i = 0; i < 8; i++) {
+                            for (let j = 0; j < 7; j++) {
+                                if (gameState.fixedPositions.has(`${i},${j}`)) {
+                                    board[i][j] = -1;
+                                }
+                            }
+                        }
+                        
+                        // 复制拼图形状以便修改
+                        const pieces = gameState.pieces.map(p => ({
+                            ...p,
+                            shape: p.shape.map(row => [...row])
+                        }));
+                        
+                        // 尝试所有可能的拼图排列
+                        backtrack(0, board, pieces, [], solutions);
+                        
+                        resolve(solutions.slice(0, 1)); // 只返回前1个解决方案
+                    }, 0);
+                });
+            }
+
+            function backtrack(pieceIndex, board, pieces, placedPieces, solutions) {
+                if (pieceIndex === pieces.length) {
+                    // 找到一个完整解决方案
+                    solutions.push(board.map(row => [...row]));
+                    return;
+                }
+                
+                const piece = pieces[pieceIndex];
+                const originalShape = piece.shape.map(row => [...row]);
+                
+                // 尝试所有可能的变换（旋转和翻转）
+                for (let flip = 0; flip < 2; flip++) {
+                    for (let rotation = 0; rotation < 4; rotation++) {
+                        // 尝试将拼图放在棋盘上的每个可能位置
+                        for (let i = 0; i < 8; i++) {
+                            for (let j = 0; j < 7; j++) {
+                                if (canPlacePiece(board, piece.shape, i, j)) {
+                                    // 放置拼图
+                                    placePieceOnBoard(board, pieceIndex + 1, piece.shape, i, j);
+                                    placedPieces.push({index: pieceIndex, row: i, col: j});
+                                    
+                                    // 递归尝试放置下一个拼图
+                                    backtrack(pieceIndex + 1, board, pieces, placedPieces, solutions);
+                                    
+                                    // 如果已经找到足够多的解决方案，提前返回
+                                    if (solutions.length >= 1) return;
+                                    
+                                    // 回溯：移除拼图
+                                    removePieceFromBoard(board, piece.shape, i, j);
+                                    placedPieces.pop();
+                                }
+                            }
+                        }
+                        
+                        // 旋转拼图
+                        piece.shape = rotateMatrix(piece.shape);
+                    }
+                    
+                    // 翻转拼图
+                    piece.shape = flipMatrix(piece.shape);
+                }
+                
+                // 恢复原始形状
+                piece.shape = originalShape;
+            }
+
+            function canPlacePiece(board, shape, startRow, startCol) {
+                const rows = shape.length;
+                const cols = shape[0].length;
+                
+                // 检查是否超出边界
+                if (startRow + rows > 8 || startCol + cols > 7) {
+                    return false;
+                }
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (shape[i][j] === 1) {
+                            const cellRow = startRow + i;
+                            const cellCol = startCol + j;
+                            
+                            // 检查是否是固定位置或已被占用
+                            if (board[cellRow][cellCol] !== 0) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                
+                return true;
+            }
+
+            function placePieceOnBoard(board, pieceId, shape, startRow, startCol) {
+                const rows = shape.length;
+                const cols = shape[0].length;
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (shape[i][j] === 1) {
+                            board[startRow + i][startCol + j] = pieceId;
+                        }
+                    }
+                }
+            }
+
+            function removePieceFromBoard(board, shape, startRow, startCol) {
+                const rows = shape.length;
+                const cols = shape[0].length;
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (shape[i][j] === 1) {
+                            board[startRow + i][startCol + j] = 0;
+                        }
+                    }
+                }
+            }
+
+            function displaySolutions() {
+                elements.solutionsGrid.innerHTML = '';
+                
+                if (gameState.solutions.length === 0) {
+                    elements.solutionModal.style.display = 'none';
+                    updateStatus('未找到有效的解决方案', 'error');
+                    return;
+                }
+                
+                elements.solutionModal.style.display = 'flex';
+                
+                gameState.solutions.forEach((solution, index) => {
+                    const solutionElement = document.createElement('div');
+                    solutionElement.className = 'solution-item';
+                    
+                    const title = document.createElement('h4');
+                    title.textContent = `解决方案 ${index + 1}`;
+                    solutionElement.appendChild(title);
+                    
+                    const board = document.createElement('div');
+                    board.className = 'solution-preview';
+                    
+                    for (let i = 0; i < 8; i++) {
+                        for (let j = 0; j < 7; j++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'solution-cell';
+                            
+                            if (solution[i][j] === -1) {
+                                cell.classList.add('fixed');
+                            } else if (solution[i][j] > 0) {
+                                cell.classList.add('filled');
+                                cell.style.backgroundColor = gameState.pieceColors[solution[i][j] - 1];
+                            }
+                            
+                            board.appendChild(cell);
+                        }
+                    }
+                    
+                    solutionElement.appendChild(board);
+                    
+                    const applyBtn = document.createElement('button');
+                    applyBtn.className = 'primary-btn';
+                    applyBtn.textContent = '应用此方案';
+                    applyBtn.style.marginTop = '10px';
+                    applyBtn.addEventListener('click', () => applySolution(solution));
+                    solutionElement.appendChild(applyBtn);
+                    
+                    elements.solutionsGrid.appendChild(solutionElement);
+                });
+            }
+
+            function applySolution(solution) {
+                resetBoard();
+                
+                // 记录每个拼图块的形状和位置
+                const piecePositions = {};
+                
+                // 为每个拼图块创建变换记录
+                for (let i = 0; i < gameState.pieces.length; i++) {
+                    piecePositions[i] = {
+                        shape: gameState.pieces[i].shape,
+                        row: -1,
+                        col: -1
+                    };
+                }
+                
+                // 找到每个拼图块的起始位置
+                for (let pieceIndex = 0; pieceIndex < gameState.pieces.length; pieceIndex++) {
+                    outerLoop:
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 7; c++) {
+                            if (solution[r][c] === pieceIndex + 1) {
+                                piecePositions[pieceIndex].row = r;
+                                piecePositions[pieceIndex].col = c;
+                                break outerLoop;
+                            }
+                        }
+                    }
+                }
+                
+                // 对每个拼图块应用正确的变换并放置
+                for (let pieceIndex = 0; pieceIndex < gameState.pieces.length; pieceIndex++) {
+                    const pos = piecePositions[pieceIndex];
+                    if (pos.row === -1 || pos.col === -1) continue;
+                    
+                    // 计算解决方案中拼图块的实际形状
+                    const solutionShape = [];
+                    for (let i = 0; i < 8; i++) {
+                        solutionShape[i] = [];
+                        for (let j = 0; j < 7; j++) {
+                            solutionShape[i][j] = solution[i][j] === pieceIndex + 1 ? 1 : 0;
+                        }
+                    }
+                    
+                    // 提取拼图块的实际形状
+                    let minRow = 8, maxRow = -1, minCol = 7, maxCol = -1;
+                    for (let i = 0; i < 8; i++) {
+                        for (let j = 0; j < 7; j++) {
+                            if (solutionShape[i][j] === 1) {
+                                minRow = Math.min(minRow, i);
+                                maxRow = Math.max(maxRow, i);
+                                minCol = Math.min(minCol, j);
+                                maxCol = Math.max(maxCol, j);
+                            }
+                        }
+                    }
+                    
+                    const actualShape = [];
+                    for (let i = minRow; i <= maxRow; i++) {
+                        const row = [];
+                        for (let j = minCol; j <= maxCol; j++) {
+                            row.push(solutionShape[i][j]);
+                        }
+                        actualShape.push(row);
+                    }
+                    
+                    // 初始化变换
+                    gameState.pieceTransforms[pieceIndex] = {
+                        shape: gameState.pieces[pieceIndex].shape,
+                        rotation: 0,
+                        flipped: false
+                    };
+                    
+                    // 尝试所有变换组合以匹配实际形状
+                    let foundMatch = false;
+                    const originalShape = JSON.parse(JSON.stringify(gameState.pieces[pieceIndex].shape));
+                    
+                    for (let flip = 0; flip < 2; flip++) {
+                        for (let rotation = 0; rotation < 4; rotation++) {
+                            // 检查当前形状是否匹配
+                            if (arraysEqual(gameState.pieceTransforms[pieceIndex].shape, actualShape)) {
+                                foundMatch = true;
+                                break;
+                            }
+                            
+                            // 旋转形状
+                            gameState.pieceTransforms[pieceIndex].shape = rotateMatrix(gameState.pieceTransforms[pieceIndex].shape);
+                            gameState.pieceTransforms[pieceIndex].rotation = (rotation + 90) % 360;
+                        }
+                        
+                        if (foundMatch) break;
+                        
+                        // 翻转形状
+                        gameState.pieceTransforms[pieceIndex].shape = flipMatrix(gameState.pieceTransforms[pieceIndex].shape);
+                        gameState.pieceTransforms[pieceIndex].flipped = !gameState.pieceTransforms[pieceIndex].flipped;
+                    }
+                    
+                    // 如果没有找到匹配的变换，使用原始形状
+                    if (!foundMatch) {
+                        gameState.pieceTransforms[pieceIndex].shape = originalShape;
+                        gameState.pieceTransforms[pieceIndex].rotation = 0;
+                        gameState.pieceTransforms[pieceIndex].flipped = false;
+                    }
+                    
+                    // 放置拼图块
+                    placePieceAtPosition(pieceIndex, minRow, minCol);
+                    
+                    // 更新拼图块显示
+                    const pieceElement = document.querySelector(`.puzzle-piece[data-piece-index="${pieceIndex}"]`);
+                    if (pieceElement) {
+                        pieceElement.classList.add('used');
+                        pieceElement.style.opacity = '1';
+                    }
+                    
+                    gameState.undoStack.push(pieceIndex);
+                }
+                
+                elements.undoButton.disabled = false;
+                
+                gameState.moves = gameState.pieces.length;
+                elements.movesDisplay.textContent = gameState.moves;
+                
+                if (!gameState.gameStarted) {
+                    startGameTimer();
+                }
+                
+                elements.solutionModal.style.display = 'none';
+                updateStatus('已应用选定的解决方案', 'info');
+            }
+
+            // 辅助函数：检查两个二维数组是否相等
+            function arraysEqual(a, b) {
+                if (!a || !b) return false;
+                if (a.length !== b.length) return false;
+                
+                for (let i = 0; i < a.length; i++) {
+                    if (!Array.isArray(a[i]) || !Array.isArray(b[i]) || a[i].length !== b[i].length) {
+                        return false;
+                    }
+                    for (let j = 0; j < a[i].length; j++) {
+                        if (a[i][j] !== b[i][j]) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            function updateStatus(message, type = 'info') {
+                elements.status.textContent = message;
+                elements.status.className = 'status-message';
+                
+                switch (type) {
+                    case 'success':
+                        elements.status.classList.add('status-success');
+                        break;
+                    case 'error':
+                        elements.status.classList.add('status-error');
+                        break;
+                    default:
+                        elements.status.classList.add('status-info');
+                }
+            }
+
+            // 绑定按钮事件
+            elements.setDateBtn.addEventListener('click', setGameDate);
+            elements.solvePuzzleBtn.addEventListener('click', solvePuzzle);
+            elements.checkSolutionBtn.addEventListener('click', checkSolution);
+            elements.resetBoardBtn.addEventListener('click', resetBoard);
+            elements.undoButton.addEventListener('click', undoLastPiece);
+            elements.closeModalBtn.addEventListener('click', () => {
+                elements.solutionModal.style.display = 'none';
+            });
+            elements.playAgainBtn.addEventListener('click', () => {
+                elements.congratsModal.style.display = 'none';
+                resetBoard();
+            });
+            
+            // 添加触摸反馈
+            addTouchFeedback(elements.solvePuzzleBtn);
+            addTouchFeedback(elements.checkSolutionBtn);
+            addTouchFeedback(elements.resetBoardBtn);
+            addTouchFeedback(elements.undoButton);
+            addTouchFeedback(elements.closeModalBtn);
+            addTouchFeedback(elements.playAgainBtn);
+            addTouchFeedback(versionSwitchBtn);
+            
+            elements.monthSelect.addEventListener('change', function() {
+                const year = parseInt(elements.yearSelect.value);
+                const month = parseInt(this.value);
+                updateDaySelector(year, month);
+            });
+            
+            elements.yearSelect.addEventListener('change', function() {
+                const year = parseInt(this.value);
+                const month = parseInt(elements.monthSelect.value);
+                updateDaySelector(year, month);
+            });
+
+            window.addEventListener('click', (e) => {
+                if (e.target === elements.solutionModal) {
+                    elements.solutionModal.style.display = 'none';
+                }
+                if (e.target === elements.congratsModal) {
+                    elements.congratsModal.style.display = 'none';
+                }
+            });
+
+            // 监听窗口大小变化，自动调整布局
+            window.addEventListener('resize', () => {
+                const wasMobileView = isMobileView;
+                isMobileView = window.innerWidth <= 768;
+                
+                if (wasMobileView !== isMobileView) {
+                    updateVersionButtonText();
+                    updateTransformButtonsVisibility();
+                    initializeBoard();
+                }
+            });
+
+            initDateSelectors();
+            setGameDate();
+            updateTransformButtonsVisibility();
+            updateStatus(isMobileView ? '手机视图：点击拼图块选中，使用按钮操作' : '电脑视图：可拖拽拼图，使用键盘操作', 'info');
+        });
+    </script>
+</body>
+</html>
